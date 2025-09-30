@@ -1,56 +1,62 @@
-import os
-import sys
 import time
 import logging
-from logging.handlers import RotatingFileHandler
 from tenable.sc import TenableSC
 from tenable.errors import APIError
 
-# -----------------------------
+# -----------------------------------------------------------------------------
+# LOGGING CONFIGURATION
+# -----------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("asset_creation.log"),   # detailed log file
+        logging.StreamHandler()                      # console output
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# -----------------------------------------------------------------------------
+# TENABLE.SC CONNECTION (static style)
+# -----------------------------------------------------------------------------
+a_key = "078f9ac50b734a0b89c3558fc398ab90"
+s_key = "79ace1cc876f4870b43d34c24cee9984"
+tenable_sc_url = "tenable_admin.sce.com"
+
+# -----------------------------------------------------------------------------
 # CONFIG
-# -----------------------------
-TENABLE_SC_URL = os.getenv("TENABLE_SC_URL", "https://tenable_admin.sce.com")
-ACCESS_KEY     = os.getenv("TENABLE_SC_ACCESS_KEY") or "REPLACE_ME"
-SECRET_KEY     = os.getenv("TENABLE_SC_SECRET_KEY") or "REPLACE_ME"
+# -----------------------------------------------------------------------------
+PLUGIN_NAME_PATTERN = "Linux Distros Unpatched Vulnerability"
+REPO_ID = 5
+DRY_RUN = False                # set True to log only, no changes
+DEBUG_SINGLE_PLUGIN_ID = None  # e.g. 231722 for testing single plugin
 
-PLUGIN_NAME_PATTERN = "Linux Distros Unpatched Vulnerability"  # 'like' search
-REPO_ID = 5                                 # target repository ID
-DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"  # set to "true" to test without creating
-
-LOG_PATH = os.getenv("LOG_PATH", "tenable_accept_risk.log")
-
-# -----------------------------
-# LOGGING
-# -----------------------------
-logger = logging.getLogger("auto_accept_linux_unpatched")
-logger.setLevel(logging.DEBUG)
-
-# Rotating file log (5 MB x 5)
-fh = RotatingFileHandler(LOG_PATH, maxBytes=5*1024*1024, backupCount=5)
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-
-# Console
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO)
-ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-
-logger.addHandler(fh)
-logger.addHandler(ch)
 
 def connect_sc():
     """Login to Tenable.sc."""
-    logger.info("Connecting to Tenable.sc at %s", TENABLE_SC_URL)
-    sc = TenableSC(TENABLE_SC_URL)
-    sc.login(access_key=ACCESS_KEY, secret_key=SECRET_KEY)
+    logger.info("Connecting to Tenable.sc at %s", tenable_sc_url)
+    sc = TenableSC(tenable_sc_url)
+    sc.login(access_key=a_key, secret_key=s_key)
     logger.info("Connected successfully.")
     return sc
 
+
 def fetch_target_plugins(sc):
     """
-    Retrieve plugins whose names contain PLUGIN_NAME_PATTERN.
-    Uses sc.plugins.list(filter=('name','like',pattern)).
+    Retrieve target plugins. If DEBUG_SINGLE_PLUGIN_ID is set,
+    only return that plugin. Otherwise, search by name pattern.
     """
+    if DEBUG_SINGLE_PLUGIN_ID:
+        logger.warning("====================================================")
+        logger.warning(" RUNNING IN DEBUG MODE: ONLY PROCESSING PLUGIN ID %s ", DEBUG_SINGLE_PLUGIN_ID)
+        logger.warning("====================================================")
+        try:
+            plugin = sc.plugins.details(int(DEBUG_SINGLE_PLUGIN_ID))
+            return [{'id': int(plugin['id']), 'name': plugin.get('name', '')}]
+        except Exception as e:
+            logger.error("Failed to fetch plugin id=%s: %s", DEBUG_SINGLE_PLUGIN_ID, e)
+            return []
+
     logger.info("Querying plugins with name like '%s' ...", PLUGIN_NAME_PATTERN)
     plugins_iter = sc.plugins.list(
         fields=['id', 'name', 'pluginPubDate', 'pluginModDate'],
@@ -67,22 +73,19 @@ def fetch_target_plugins(sc):
     logger.info("Found %d matching plugins.", len(plugins))
     return plugins
 
+
 def existing_rule_for(sc, repo_id, plugin_id):
     """
     Check if an Accept Risk rule already exists for this repo & plugin.
-    Uses sc.accept_risks.list(repo_ids=[repo_id], plugin_id=plugin_id)
     """
     rules = sc.accept_risks.list(repo_ids=[repo_id], plugin_id=plugin_id)
-    # Some environments return list[dict] where each has keys including 'repositories' or 'repos'
     has_match = len(rules) > 0
     logger.debug("Existing rules for plugin %s in repo %s: %d", plugin_id, repo_id, len(rules))
     return has_match, rules
 
+
 def create_rule(sc, repo_id, plugin_id, comment):
-    """
-    Create an Accept Risk rule restricted to the repo (all IPs in that repo).
-    Per docs: create(plugin_id, repos=[repo_id], <optional params>).
-    """
+    """Create an Accept Risk rule restricted to the repo."""
     if DRY_RUN:
         logger.info("[DRY-RUN] Would create Accept Risk rule for plugin %s in repo %s", plugin_id, repo_id)
         return None
@@ -91,6 +94,7 @@ def create_rule(sc, repo_id, plugin_id, comment):
     rule = sc.accept_risks.create(plugin_id, [repo_id], comments=comment)
     logger.info("Created rule id=%s for plugin %s", rule.get('id'), plugin_id)
     return rule
+
 
 def main():
     start = time.time()
@@ -104,7 +108,7 @@ def main():
         sc = connect_sc()
     except Exception as e:
         logger.exception("Failed to connect/login to Tenable.sc: %s", e)
-        sys.exit(2)
+        return
 
     try:
         plugins = fetch_target_plugins(sc)
@@ -150,6 +154,7 @@ def main():
                 observed, created, skipped_existing, failures, elapsed)
     if created_rule_ids:
         logger.debug("Created rule IDs: %s", created_rule_ids)
+
 
 if __name__ == "__main__":
     main()
