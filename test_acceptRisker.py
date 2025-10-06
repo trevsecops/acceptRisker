@@ -10,7 +10,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("asset_creation.log"),   # detailed log file
+        logging.FileHandler("rule_creation.log"),   # detailed log file
         logging.StreamHandler()                      # console output
     ]
 )
@@ -26,10 +26,10 @@ tenable_sc_url = "tenable_admin.sce.com"
 # -----------------------------------------------------------------------------
 # CONFIG
 # -----------------------------------------------------------------------------
-PLUGIN_NAME_PATTERN = "Linux Distros Unpatched Vulnerability"
+PLUGIN_NAME_PATTERN = "Unpatched"
 REPO_ID = 5
 DRY_RUN = False                # set True to log only, no changes
-DEBUG_SINGLE_PLUGIN_ID = None  # e.g. 231722 for testing single plugin
+DEBUG_SINGLE_PLUGIN_ID = None # e.g. 231722 for testing single plugin
 
 
 def connect_sc():
