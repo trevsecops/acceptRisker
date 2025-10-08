@@ -1,0 +1,7 @@
+[root@ayoppten96 ctm-tenable-accept-risker-tool]# sudo journalctl -u ctm-accept-risker.service --since "1 day ago" -n 50
+-- Logs begin at Tue 2023-10-24 11:41:12 PDT, end at Wed 2025-10-08 05:18:36 PDT. --
+Oct 07 08:00:00 ayoppten96 systemd[1]: Starting CTM Tenable Accept Risker Automation...
+Oct 07 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Main process exited, code=exited, status=209/STDOUT
+Oct 07 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Failed with result 'exit-code'.
+Oct 07 08:00:00 ayoppten96 systemd[1]: Failed to start CTM Tenable Accept Risker Automation.
+[root@ayoppten96 ctm-tenable-accept-risker-tool]#
