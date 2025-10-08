@@ -1,7 +1,13 @@
-[root@ayoppten96 ctm-tenable-accept-risker-tool]# sudo journalctl -u ctm-accept-risker.service --since "1 day ago" -n 50
--- Logs begin at Tue 2023-10-24 11:41:12 PDT, end at Wed 2025-10-08 05:18:36 PDT. --
-Oct 07 08:00:00 ayoppten96 systemd[1]: Starting CTM Tenable Accept Risker Automation...
-Oct 07 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Main process exited, code=exited, status=209/STDOUT
-Oct 07 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Failed with result 'exit-code'.
-Oct 07 08:00:00 ayoppten96 systemd[1]: Failed to start CTM Tenable Accept Risker Automation.
-[root@ayoppten96 ctm-tenable-accept-risker-tool]#
+[root@ayoppten96 ctm-tenable-accept-risker-tool]# ls
+acceptRisker.py  ctm-accept-risker.service  ctm-accept-risker.timer  README.md
+[root@ayoppten96 ctm-tenable-accept-risker-tool]# sudo systemctl status ctm-accept-risker.service
+● ctm-accept-risker.service - CTM Tenable Accept Risker Automation
+   Loaded: loaded (/etc/systemd/system/ctm-accept-risker.service; static; vendor preset: disabled)
+   Active: failed (Result: exit-code) since Wed 2025-10-08 08:00:00 PDT; 15min ago
+  Process: 2559031 ExecStart=/usr/bin/python3 /opt/scripts/ctm-tenable-accept-risker-tool/acceptRisker.py (code=exited, statu>
+ Main PID: 2559031 (code=exited, status=209/STDOUT)
+
+Oct 08 08:00:00 ayoppten96 systemd[1]: Starting CTM Tenable Accept Risker Automation...
+Oct 08 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Main process exited, code=exited, status=209/STDOUT
+Oct 08 08:00:00 ayoppten96 systemd[1]: ctm-accept-risker.service: Failed with result 'exit-code'.
+Oct 08 08:00:00 ayoppten96 systemd[1]: Failed to start CTM Tenable Accept Risker Automation.
